@@ -22,10 +22,10 @@ export const createUser = async (data: User) => {
     }
 }
 
-export const createOrg = async (data: Org, orgType: string, userId: string) => {
+export const createSchool = async (data: Org, userId: string) => {
     try {
         const result = await prisma.$transaction(async (tx: any) => {
-            const org = await tx[orgType].create({
+            const org = await tx.school.create({
                 data: {
                     name: data.name,
                     phoneNo: data.phoneNo,
@@ -34,7 +34,30 @@ export const createOrg = async (data: Org, orgType: string, userId: string) => {
             });
             const profile = await tx.profile.update({
                 where: { userId: userId },
-                data: { [orgType + "Id"]: org.id },
+                data: { schoolId: org.id },
+            });
+            return { org, profile };
+        });
+        return result;
+
+    } catch (error: unknown) {
+        return "Error creating school: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const createNGO = async (data: Org, userId: string) => {
+    try {
+        const result = await prisma.$transaction(async (tx: any) => {
+            const org = await tx.NGO.create({
+                data: {
+                    name: data.name,
+                    phoneNo: data.phoneNo,
+                    email: data.email,
+                },
+            });
+            const profile = await tx.profile.update({
+                where: { userId: userId },
+                data: { ngoId: org.id },
             });
             return { org, profile };
         });

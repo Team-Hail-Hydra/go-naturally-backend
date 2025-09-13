@@ -1,6 +1,6 @@
 import type{ FastifyRequest, FastifyReply } from "fastify";
 import { asyncHandle, successHandle, errorHandle } from "../utils/handler.js";
-import { createUser, createOrg, joinOrg } from "../service/user.service.js";
+import { createUser, createSchool, createNGO, joinOrg } from "../service/user.service.js";
 
 export const createUserController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
     const data = request.body as any;
@@ -13,7 +13,14 @@ export const createOrgController = asyncHandle(async (request: FastifyRequest, r
     const params = request.params as { orgType: string };
     const userId = request.user.id;
     const orgType = params.orgType;
-    const result = await createOrg(data, orgType, userId);
+    console.log("Org Type:", orgType, "User ID:", userId, "Data:", data);
+    let result;
+    if (orgType === "School") {
+        result = await createSchool(data, userId);
+    } else if (orgType === "NGO") {
+        result = await createNGO(data, userId);
+    } 
+    
     if (typeof result === "string") {
         return errorHandle(result, reply, 400);
     }
