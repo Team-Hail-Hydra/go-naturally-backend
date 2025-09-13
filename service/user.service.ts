@@ -68,11 +68,24 @@ export const createNGO = async (data: Org, userId: string) => {
     }
 }
 
-export const joinOrg = async (orgId: string, orgType: string, userId: string) => {
+export const joinSchool = async (orgId: string, userId: string) => {
     try{
         const profile = await prisma.profile.update({
             where: { userId: userId },
-            data: { [orgType + "Id"]: orgId },
+            data: { schoolId: orgId },
+        });
+        return profile;
+
+    }catch(error: unknown){
+        return "Error joining org: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const joinNGO = async (orgId: string, userId: string) => {
+    try{
+        const profile = await prisma.profile.update({
+            where: { userId: userId },
+            data: { ngoId: orgId },
         });
         return profile;
 
@@ -164,12 +177,13 @@ export const getNGOEvents = async (page: number) => {
     }
 }
 
-export const getSchoolEvents = async (page: number) => {
+export const getSchoolEvents = async (page: number, SchoolId: string) => {
     try {
         const eventCounts = await prisma.school_Events.count();
         const events = await prisma.school_Events.findMany({
             skip: (page - 1) * 10,
             take: 10,
+            where: { schoolId: SchoolId },
         });
         return {
             events,

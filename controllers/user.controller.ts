@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { asyncHandle, successHandle, errorHandle } from "../utils/handler.js";
-import { createUser, createSchool, createNGO, joinOrg, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents } from "../service/user.service.js";
+import { createUser, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents } from "../service/user.service.js";
 
 export const createUserController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
@@ -32,7 +32,13 @@ export const joinOrgController = asyncHandle(async (request: FastifyRequest, rep
   const params = request.params as { orgType: string };
   const userId = request.user.id;
   const orgType = params.orgType;
-  const result = await joinOrg(data.orgId, orgType, userId);
+  let result;
+  if (orgType === "School") {
+    result = await joinSchool(data.orgId, userId);
+  } else if (orgType === "NGO") {
+    result = await joinNGO(data.orgId, userId);
+  }
+ 
   if (typeof result === "string") {
     return errorHandle(result, reply, 400);
   }
@@ -86,7 +92,8 @@ export const getNGOEventsController = asyncHandle(async (request: FastifyRequest
 });
 
 export const getSchoolEventsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const { SchoolId } = request.params as { SchoolId: string };
   const page = parseInt((request.query as any).page as string || "1");
-  const result = await getSchoolEvents(page);
+  const result = await getSchoolEvents(page, SchoolId);
   return successHandle(result, reply, 200);
 });
