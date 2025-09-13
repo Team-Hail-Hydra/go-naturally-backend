@@ -44,3 +44,16 @@ export const createOrg = async (data: Org, orgType: string, userId: string) => {
         return "Error creating school: " + (error instanceof Error ? error.message : String(error));
     }
 }
+
+export const joinOrg = async (orgId: string, orgType: string, userId: string) => {
+    try{
+        const profile = await prisma.profile.update({
+            where: { userId: userId },
+            data: { [orgType + "Id"]: orgId },
+        });
+        return profile;
+
+    }catch(error: unknown){
+        return "Error joining org: " + (error instanceof Error ? error.message : String(error));
+    }
+}
