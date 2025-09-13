@@ -70,6 +70,12 @@ export const createNGO = async (data: Org, userId: string) => {
 
 export const joinSchool = async (orgId: string, userId: string) => {
     try{
+        const org = await prisma.school.findUnique({
+            where: { id: orgId },
+        });
+        if(!org){
+            return "School not found";
+        }
         const profile = await prisma.profile.update({
             where: { userId: userId },
             data: { schoolId: orgId },
@@ -83,6 +89,12 @@ export const joinSchool = async (orgId: string, userId: string) => {
 
 export const joinNGO = async (orgId: string, userId: string) => {
     try{
+        const org = await prisma.nGO.findUnique({
+            where: { id: orgId },
+        });
+        if(!org){
+            return "NGO not found";
+        }
         const profile = await prisma.profile.update({
             where: { userId: userId },
             data: { ngoId: orgId },

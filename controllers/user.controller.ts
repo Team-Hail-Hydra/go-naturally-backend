@@ -34,9 +34,9 @@ export const joinOrgController = asyncHandle(async (request: FastifyRequest, rep
   const orgType = params.orgType;
   let result;
   if (orgType === "School") {
-    result = await joinSchool(data.orgId, userId);
+    result = await joinSchool(data.organization_code, userId);
   } else if (orgType === "NGO") {
-    result = await joinNGO(data.orgId, userId);
+    result = await joinNGO(data.organization_code, userId);
   }
  
   if (typeof result === "string") {
