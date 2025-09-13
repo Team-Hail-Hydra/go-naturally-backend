@@ -22,6 +22,17 @@ export const createUser = async (data: User) => {
     }
 }
 
+export const getUserById = async (userId: string) => {
+    try {
+        const user = await prisma.profile.findUnique({
+            where: { userId: userId },
+        });
+        return user;
+    } catch (error: unknown) {
+        return "Error getting user: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
 export const createSchool = async (data: Org, userId: string) => {
     try {
         const result = await prisma.$transaction(async (tx: any) => {

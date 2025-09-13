@@ -1,10 +1,11 @@
 import type{ FastifyInstance } from "fastify";
-import { createUserController,createOrgController, joinOrgController, createNGOEventController, createSchoolEventController, applyForNGOEventController, applyForSchoolEventController, getNGOEventsController, getSchoolEventsController  } from "../controllers/user.controller.js";
+import { createUserController, getUserController,createOrgController, joinOrgController, createNGOEventController, createSchoolEventController, applyForNGOEventController, applyForSchoolEventController, getNGOEventsController, getSchoolEventsController  } from "../controllers/user.controller.js";
 import  authHandler from "../utils/authChecker.js";
 
 export const routes = async (fastify: FastifyInstance): Promise<void> => {
   // Declare a route for the root path
   fastify.post('/user', { preHandler: authHandler }, createUserController);
+  fastify.get('/user/:userId', { preHandler: authHandler }, getUserController);
   fastify.post('/org/:orgType', { preHandler: authHandler }, createOrgController);
   fastify.post('/org/join/:orgType', { preHandler: authHandler }, joinOrgController);
   fastify.post('/ngo/event', { preHandler: authHandler }, createNGOEventController);

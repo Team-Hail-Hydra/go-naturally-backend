@@ -1,12 +1,19 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { asyncHandle, successHandle, errorHandle } from "../utils/handler.js";
-import { createUser, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents } from "../service/user.service.js";
+import { createUser, getUserById, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents } from "../service/user.service.js";
 
 export const createUserController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
   const result = await createUser(data);
   return successHandle(result, reply, 201);
 });
+
+export const getUserController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const { userId } = request.params as { userId: string };
+  const result = await getUserById(userId);
+  return successHandle(result, reply, 200);
+});
+
 
 export const createOrgController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
@@ -38,7 +45,7 @@ export const joinOrgController = asyncHandle(async (request: FastifyRequest, rep
   } else if (orgType === "NGO") {
     result = await joinNGO(data.organization_code, userId);
   }
- 
+
   if (typeof result === "string") {
     return errorHandle(result, reply, 400);
   }
@@ -67,7 +74,6 @@ export const createSchoolEventController = asyncHandle(async (request: FastifyRe
 
 export const applyForNGOEventController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
-  const userId = request.user.id;
   const result = await applyForNGOEvent(data.eventId);
   if (typeof result === "string") {
     return errorHandle(result, reply, 400);
