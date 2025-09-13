@@ -26,8 +26,10 @@ model Profile {
   school   School? @relation(fields: [schoolId], references: [id])
   schoolId String?
 
-  ngo   NGO?    @relation(fields: [ngoId], references: [id])
-  ngoId String?
+  ngo                        NGO?                         @relation(fields: [ngoId], references: [id])
+  ngoId                      String?
+  NGO_Events_Applications    NGO_Events_Applications[]
+  School_Events_Applications School_Events_Applications[]
 }
 
 enum Role {
@@ -37,17 +39,68 @@ enum Role {
 }
 
 model School {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  phoneNo   String    @unique
-  members   Profile[]
+  id            String          @id @default(uuid())
+  name          String
+  email         String          @unique
+  phoneNo       String          @unique
+  members       Profile[]
+  School_Events School_Events[]
 }
 
 model NGO {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  phoneNo   String    @unique
-  members   Profile[]
+  id         String       @id @default(uuid())
+  name       String
+  email      String       @unique
+  phoneNo    String       @unique
+  members    Profile[]
+  NGO_Events NGO_Events[]
+}
+
+model NGO_Events {
+  id                      String                    @id @default(uuid())
+  title                   String
+  description             String
+  latitude                Float
+  longitude               Float
+  date                    DateTime
+  ngo                     NGO                       @relation(fields: [ngoId], references: [id])
+  ngoId                   String
+  NGO_Events_Applications NGO_Events_Applications[]
+}
+
+model School_Events {
+  id                         String                       @id @default(uuid())
+  title                      String
+  description                String
+  latitude                   Float
+  longitude                  Float
+  date                       DateTime
+  school                     School                       @relation(fields: [schoolId], references: [id])
+  schoolId                   String
+  School_Events_Applications School_Events_Applications[]
+}
+
+model NGO_Events_Applications {
+  id         String            @id @default(uuid())
+  ngoEvent   NGO_Events        @relation(fields: [ngoEventId], references: [id])
+  ngoEventId String
+  profile    Profile           @relation(fields: [profileId], references: [id])
+  profileId  String
+  status     ApplicationStatus @default(PENDING)
+  appliedAt  DateTime          @default(now())
+}
+
+model School_Events_Applications {
+  id            String            @id @default(uuid())
+  schoolEvent   School_Events     @relation(fields: [schoolEventId], references: [id])
+  schoolEventId String
+  profile       Profile           @relation(fields: [profileId], references: [id])
+  profileId     String
+  appliedAt     DateTime          @default(now())
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

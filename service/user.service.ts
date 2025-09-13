@@ -80,3 +80,106 @@ export const joinOrg = async (orgId: string, orgType: string, userId: string) =>
         return "Error joining org: " + (error instanceof Error ? error.message : String(error));
     }
 }
+
+export const createNGOEvent = async (data: any) => {
+    try {
+        const Event = await prisma.nGO_Events.create({
+            data:{
+                title: data.title,
+                description: data.description,
+                date: data.date,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                ngoId: data.ngoId
+            }
+        });
+        return Event;
+    } catch (error: unknown) {
+        return "Error creating NGO event: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const createSchoolEvent = async (data: any) => {
+    try {
+        const Event = await prisma.school_Events.create({
+            data:{
+                title: data.title,
+                description: data.description,
+                date: data.date,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                schoolId: data.schoolId
+            }
+        });
+        return Event;
+    } catch (error: unknown) {
+        return "Error creating school event: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const applyForNGOEvent = async (data: any) => {
+    try {
+        const application = await prisma.nGO_Events_Applications.create({
+            data: {
+                profileId: data.userId,
+                ngoEventId: data.eventId,
+                status: "PENDING",
+                
+            }
+        });
+        return application;
+    } catch (error: unknown) {
+        return "Error applying for NGO event: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const applyForSchoolEvent = async (data: any, userId: string) => {
+    try {
+        const application = await prisma.school_Events_Applications.create({
+            data: {
+                profileId: data.userId,
+                schoolEventId: data.eventId,
+            }
+        });
+        return application;
+    } catch (error: unknown) {
+        return "Error applying for school event: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getNGOEvents = async (page: number) => {
+    try {
+        const eventCounts = await prisma.nGO_Events.count();
+        const events = await prisma.nGO_Events.findMany({
+            skip: (page - 1) * 10,
+            take: 10,
+        });
+        return {
+            events,
+            totalPages: Math.ceil(eventCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        return "Error fetching NGO events: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getSchoolEvents = async (page: number) => {
+    try {
+        const eventCounts = await prisma.school_Events.count();
+        const events = await prisma.school_Events.findMany({
+            skip: (page - 1) * 10,
+            take: 10,
+        });
+        return {
+            events,
+            totalPages: Math.ceil(eventCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        return "Error fetching school events: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+
+
