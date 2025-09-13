@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import dotenv from 'dotenv';
 
-import { routes } from './routes/route.js';
+import { routes } from './routes/user.routes.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -32,6 +32,7 @@ const start = async (): Promise<void> => {
     await fastify.listen({ port, host });
     console.log(`Server is running on http://${host}:${port}`);
   } catch (err) {
+    console.error('Error starting server:', err);
     fastify.log.error(err);
     process.exit(1);
   }

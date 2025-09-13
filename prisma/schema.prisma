@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id         String  @id @default(uuid())
+  userId     String  @unique // Supabase auth.users.id
+  fullName   String
+  email      String  @unique
+  role       Role
+  profilePic String?
+
+  school   School? @relation(fields: [schoolId], references: [id])
+  schoolId String?
+
+  ngo   NGO?    @relation(fields: [ngoId], references: [id])
+  ngoId String?
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  NGO
+}
+
+model School {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  phoneNo   String    @unique
+  members   Profile[]
+}
+
+model NGO {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  phoneNo   String    @unique
+  members   Profile[]
+}
