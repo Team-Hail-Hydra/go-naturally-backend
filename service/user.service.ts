@@ -25,7 +25,13 @@ export const createUser = async (data: User) => {
 export const getUserById = async (userId: string) => {
     try {
         const user = await prisma.profile.findUnique({
-            where: { userId: userId },
+            where: { 
+                userId: userId,
+            },
+            include: {
+                school: true,
+                ngo: true,
+            }
         });
         return user;
     } catch (error: unknown) {
