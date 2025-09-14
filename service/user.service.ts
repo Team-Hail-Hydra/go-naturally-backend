@@ -7,8 +7,8 @@ const prisma = new PrismaClient();
 
 export const createUser = async (data: User) => {
     try {
-        const user =  await prisma.profile.create({
-            data:{
+        const user = await prisma.profile.create({
+            data: {
                 userId: data.userId,
                 fullName: data.fullName,
                 email: data.email,
@@ -25,7 +25,7 @@ export const createUser = async (data: User) => {
 export const getUserById = async (userId: string) => {
     try {
         const user = await prisma.profile.findUnique({
-            where: { 
+            where: {
                 userId: userId,
             },
             include: {
@@ -86,11 +86,11 @@ export const createNGO = async (data: Org, userId: string) => {
 }
 
 export const joinSchool = async (orgId: string, userId: string) => {
-    try{
+    try {
         const org = await prisma.school.findUnique({
             where: { id: orgId },
         });
-        if(!org){
+        if (!org) {
             return "School not found";
         }
         const profile = await prisma.profile.update({
@@ -99,17 +99,17 @@ export const joinSchool = async (orgId: string, userId: string) => {
         });
         return profile;
 
-    }catch(error: unknown){
+    } catch (error: unknown) {
         return "Error joining org: " + (error instanceof Error ? error.message : String(error));
     }
 }
 
 export const joinNGO = async (orgId: string, userId: string) => {
-    try{
+    try {
         const org = await prisma.nGO.findUnique({
             where: { id: orgId },
         });
-        if(!org){
+        if (!org) {
             return "NGO not found";
         }
         const profile = await prisma.profile.update({
@@ -118,7 +118,7 @@ export const joinNGO = async (orgId: string, userId: string) => {
         });
         return profile;
 
-    }catch(error: unknown){
+    } catch (error: unknown) {
         return "Error joining org: " + (error instanceof Error ? error.message : String(error));
     }
 }
@@ -126,7 +126,7 @@ export const joinNGO = async (orgId: string, userId: string) => {
 export const createNGOEvent = async (data: any) => {
     try {
         const Event = await prisma.nGO_Events.create({
-            data:{
+            data: {
                 title: data.title,
                 description: data.description,
                 date: data.date,
@@ -144,7 +144,7 @@ export const createNGOEvent = async (data: any) => {
 export const createSchoolEvent = async (data: any) => {
     try {
         const Event = await prisma.school_Events.create({
-            data:{
+            data: {
                 title: data.title,
                 description: data.description,
                 date: data.date,
@@ -166,7 +166,7 @@ export const applyForNGOEvent = async (data: any) => {
                 profileId: data.userId,
                 ngoEventId: data.eventId,
                 status: "PENDING",
-                
+
             }
         });
         return application;
@@ -189,13 +189,24 @@ export const applyForSchoolEvent = async (data: any, userId: string) => {
     }
 }
 
-export const getNGOEvents = async (page: number) => {
+export const getNGOEvents = async (page: number, NGOId: string) => {
     try {
-        const eventCounts = await prisma.nGO_Events.count();
-        const events = await prisma.nGO_Events.findMany({
-            skip: (page - 1) * 10,
-            take: 10,
-        });
+        let eventCounts = 0;
+        let events;
+        if (!NGOId) {
+            eventCounts = await prisma.nGO_Events.count();
+            events = await prisma.nGO_Events.findMany({
+                skip: (page - 1) * 10,
+                take: 10,
+            });
+        } else {
+            eventCounts = await prisma.nGO_Events.count({ where: { ngoId: NGOId } });
+            events = await prisma.nGO_Events.findMany({
+                skip: (page - 1) * 10,
+                take: 10,
+                where: { ngoId: NGOId },
+            });
+        }
         return {
             events,
             totalPages: Math.ceil(eventCounts / 10),

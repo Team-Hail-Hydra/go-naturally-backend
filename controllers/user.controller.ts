@@ -93,13 +93,15 @@ export const applyForSchoolEventController = asyncHandle(async (request: Fastify
 
 export const getNGOEventsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const page = parseInt((request.query as any).page as string || "1");
-  const result = await getNGOEvents(page);
+  const NGOId = (request.query as any).ngoId as string;
+  const result = await getNGOEvents(page, NGOId);
   return successHandle(result, reply, 200);
 });
 
 export const getSchoolEventsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
-  const { SchoolId } = request.params as { SchoolId: string };
+
   const page = parseInt((request.query as any).page as string || "1");
+  const SchoolId = (request.query as any).schoolId as string;
   const result = await getSchoolEvents(page, SchoolId);
   return successHandle(result, reply, 200);
 });
