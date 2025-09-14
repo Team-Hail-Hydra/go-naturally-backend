@@ -235,7 +235,7 @@ export const getSchoolEvents = async (page: number, SchoolId: string) => {
     }
 }
 
-export const createPlant = async (data: any) => {
+export const createPlant = async (data: any, ecopoints: number) => {
     try {
         const plant = await prisma.plant.create({
             data: {
@@ -246,7 +246,14 @@ export const createPlant = async (data: any) => {
                 createdById: data.createdById,
             }
         });
-        return plant;
+        await prisma.profile.update({
+            where: { userId: data.createdById },
+            data: { ecoPoints: { increment: ecopoints } }
+        });
+        return {
+            plant,
+            ecopoints
+        };
     } catch (error: unknown) {
         return "Error creating plant: " + (error instanceof Error ? error.message : String(error));
     }

@@ -22,6 +22,7 @@ model Profile {
   email      String  @unique
   role       Role
   profilePic String?
+  ecoPoints  Int     @default(0)
 
   school   School? @relation(fields: [schoolId], references: [id])
   schoolId String?

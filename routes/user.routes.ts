@@ -17,4 +17,5 @@ export const routes = async (fastify: FastifyInstance): Promise<void> => {
   
   // Plant image upload endpoint
   fastify.post('/plants/upload', { preHandler: authHandler }, getPlants);
+
 };
