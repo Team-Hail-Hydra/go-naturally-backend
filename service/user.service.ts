@@ -235,5 +235,21 @@ export const getSchoolEvents = async (page: number, SchoolId: string) => {
     }
 }
 
+export const createPlant = async (data: any) => {
+    try {
+        const plant = await prisma.plant.create({
+            data: {
+                plantName: data.plantName,
+                imageUrl: data.imageUrl,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                createdById: data.createdById,
+            }
+        });
+        return plant;
+    } catch (error: unknown) {
+        return "Error creating plant: " + (error instanceof Error ? error.message : String(error));
+    }
+}
 
 

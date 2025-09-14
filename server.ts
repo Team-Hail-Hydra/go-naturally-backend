@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import dotenv from 'dotenv';
 import cors from '@fastify/cors';
+import multipart from "@fastify/multipart";
 
 import { routes } from './routes/user.routes.js';
 
@@ -18,6 +19,15 @@ fastify.register(cors, {
   methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS']
 });
 
+ const maxFileSizeMb = process.env.MAX_FILE_SIZE_MB ? parseInt(process.env.MAX_FILE_SIZE_MB) : 100; // default 100MB for audio files
+fastify.register(multipart, {
+  limits: {
+    fileSize: maxFileSizeMb * 1024 * 1024, // convert MB to bytes
+    files: 10,
+    fieldSize: 1048576, // 1MB max field size
+    fields: 20
+  }
+});
 
 // Health check endpoint
 fastify.get('/health', async (request: FastifyRequest, reply: FastifyReply) => {

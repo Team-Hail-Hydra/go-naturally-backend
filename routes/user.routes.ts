@@ -1,5 +1,5 @@
 import type{ FastifyInstance } from "fastify";
-import { createUserController, getUserController,createOrgController, joinOrgController, createNGOEventController, createSchoolEventController, applyForNGOEventController, applyForSchoolEventController, getNGOEventsController, getSchoolEventsController  } from "../controllers/user.controller.js";
+import { createUserController, getUserController,createOrgController, joinOrgController, createNGOEventController, createSchoolEventController, applyForNGOEventController, applyForSchoolEventController, getNGOEventsController, getSchoolEventsController, getPlants  } from "../controllers/user.controller.js";
 import  authHandler from "../utils/authChecker.js";
 
 export const routes = async (fastify: FastifyInstance): Promise<void> => {
@@ -14,4 +14,7 @@ export const routes = async (fastify: FastifyInstance): Promise<void> => {
   fastify.post('/school/event/apply', { preHandler: authHandler }, applyForSchoolEventController);
   fastify.get('/ngo/events', { preHandler: authHandler }, getNGOEventsController);
   fastify.get('/school/events', { preHandler: authHandler }, getSchoolEventsController);
+  
+  // Plant image upload endpoint
+  fastify.post('/plants/upload', { preHandler: authHandler }, getPlants);
 };

@@ -15,14 +15,19 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.888.0",
+    "@aws-sdk/s3-request-presigner": "^3.888.0",
     "@fastify/cors": "^11.1.0",
+    "@fastify/multipart": "^9.0.3",
     "@prisma/client": "^6.16.1",
     "@supabase/supabase-js": "^2.57.4",
+    "@types/uuid": "^10.0.0",
     "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.0",
     "fastify": "^5.4.0",
     "jsonwebtoken": "^9.0.2",
-    "prisma": "^6.16.1"
+    "prisma": "^6.16.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

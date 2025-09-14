@@ -30,6 +30,7 @@ model Profile {
   ngoId                      String?
   NGO_Events_Applications    NGO_Events_Applications[]
   School_Events_Applications School_Events_Applications[]
+  Plant                      Plant[]
 }
 
 enum Role {
@@ -91,16 +92,26 @@ model NGO_Events_Applications {
 }
 
 model School_Events_Applications {
-  id            String            @id @default(uuid())
-  schoolEvent   School_Events     @relation(fields: [schoolEventId], references: [id])
+  id            String        @id @default(uuid())
+  schoolEvent   School_Events @relation(fields: [schoolEventId], references: [id])
   schoolEventId String
-  profile       Profile           @relation(fields: [profileId], references: [id])
+  profile       Profile       @relation(fields: [profileId], references: [id])
   profileId     String
-  appliedAt     DateTime          @default(now())
+  appliedAt     DateTime      @default(now())
 }
 
 enum ApplicationStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model Plant {
+  id          String  @id @default(uuid())
+  plantName   String
+  imageUrl    String
+  latitude    Float
+  longitude   Float
+  createdBy   Profile @relation(fields: [createdById], references: [userId])
+  createdById String
 }
