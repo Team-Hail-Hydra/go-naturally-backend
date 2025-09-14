@@ -137,6 +137,7 @@ export const createNGOEvent = async (data: any) => {
         });
         return Event;
     } catch (error: unknown) {
+        console.log(error);
         return "Error creating NGO event: " + (error instanceof Error ? error.message : String(error));
     }
 }
@@ -259,4 +260,116 @@ export const createPlant = async (data: any, ecopoints: number) => {
     }
 }
 
+export const createLitter = async (data: any) => {
+    try {
+        const litter = await prisma.litter.create({
+            data: {
+                beforeImg: data.beforeImg,
+                afterImg: data.afterImg,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                createdById: data.createdById,
+            }
+        });
+        return litter;
+    } catch (error: unknown) {
+        return "Error creating litter: " + (error instanceof Error ? error.message : String(error));
+    }
+}
 
+export const getLittersBySchoolId = async (schoolId: string, page: number) => {
+    try {
+        console.log("Searching for litters with schoolId:", schoolId);
+        
+        const litterCounts = await prisma.litter.count({ 
+            where: { 
+                createdBy: { 
+                    schoolId: schoolId 
+                } 
+            } 
+        });
+        
+        console.log("Found litter count:", litterCounts);
+        
+        const litters = await prisma.litter.findMany({
+            where: {
+                createdBy: {
+                    schoolId: schoolId
+                },
+            },
+            include:{
+                createdBy: true
+            },
+            skip: (page - 1) * 10,
+            take: 10,
+        });
+    
+        
+        return {
+            litters,
+            totalPages: Math.ceil(litterCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        console.error("Error in getLittersBySchoolId:", error);
+        return "Error fetching litters: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getLitterById = async (litterId: string) => {
+    try {
+        const litter = await prisma.litter.findUnique({
+            where: {
+                id: litterId
+            },include:{
+                createdBy:true
+            }
+        });
+        return litter;
+    } catch (error: unknown) {
+        return "Error fetching litter: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const addEcoPoints = async (userId: string, points: number) => {
+    try {
+        const user = await prisma.profile.update({
+            where: { userId: userId },
+            data: { ecoPoints: { increment: points } }
+        });
+        return user;
+    } catch (error: unknown) {
+        return "Error adding ecopoints: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getLeaderBoard = async () => {
+    try {
+        const users = await prisma.profile.findMany({
+            orderBy: { ecoPoints: 'desc' },
+            include: {
+                school: true,
+            },
+            take: 10
+        });
+        return users;
+    } catch (error: unknown) {
+        return "Error fetching leaderboard: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getLeaderBoardBySchoolId = async (schoolId: string) => {
+    try {
+        const users = await prisma.profile.findMany({
+            where: { schoolId: schoolId },
+            orderBy: { ecoPoints: 'desc' },
+            include: {
+                school: true,
+            },
+            take: 10
+        });
+        return users;
+    } catch (error: unknown) {
+        return "Error fetching leaderboard by school ID: " + (error instanceof Error ? error.message : String(error));
+    }
+}

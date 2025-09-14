@@ -1,5 +1,5 @@
 import type{ FastifyInstance } from "fastify";
-import { createUserController, getUserController,createOrgController, joinOrgController, createNGOEventController, createSchoolEventController, applyForNGOEventController, applyForSchoolEventController, getNGOEventsController, getSchoolEventsController, getPlants  } from "../controllers/user.controller.js";
+import { createUserController, getUserController,createOrgController, joinOrgController, createNGOEventController, createSchoolEventController, applyForNGOEventController, applyForSchoolEventController, getNGOEventsController, getSchoolEventsController, createPlantsController, createLitterController, getLittersBySchoolIdController, addEcoPointsController } from "../controllers/user.controller.js";
 import  authHandler from "../utils/authChecker.js";
 
 export const routes = async (fastify: FastifyInstance): Promise<void> => {
@@ -16,6 +16,9 @@ export const routes = async (fastify: FastifyInstance): Promise<void> => {
   fastify.get('/school/events', { preHandler: authHandler }, getSchoolEventsController);
   
   // Plant image upload endpoint
-  fastify.post('/plants/upload', { preHandler: authHandler }, getPlants);
+  fastify.post('/plants/upload', { preHandler: authHandler }, createPlantsController);
+  fastify.post('/litter/upload', { preHandler: authHandler } , createLitterController);
+  fastify.get('/litters/school/:schoolId', { preHandler: authHandler }, getLittersBySchoolIdController);
+  fastify.post('/eco-points/add', { preHandler: authHandler }, addEcoPointsController);
 
 };

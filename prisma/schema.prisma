@@ -32,6 +32,7 @@ model Profile {
   NGO_Events_Applications    NGO_Events_Applications[]
   School_Events_Applications School_Events_Applications[]
   Plant                      Plant[]
+  Litter                     Litter[]
 }
 
 enum Role {
@@ -64,7 +65,7 @@ model NGO_Events {
   description             String
   latitude                Float
   longitude               Float
-  date                    DateTime
+  date                    String
   ngo                     NGO                       @relation(fields: [ngoId], references: [id])
   ngoId                   String
   NGO_Events_Applications NGO_Events_Applications[]
@@ -115,4 +116,15 @@ model Plant {
   longitude   Float
   createdBy   Profile @relation(fields: [createdById], references: [userId])
   createdById String
+}
+
+model Litter {
+  id          String  @id @default(uuid())
+  beforeImg   String
+  afterImg    String
+  latitude    Float
+  longitude   Float
+  createdBy   Profile @relation(fields: [createdById], references: [userId])
+  createdById String
+  isAwarded   Boolean @default(false)
 }

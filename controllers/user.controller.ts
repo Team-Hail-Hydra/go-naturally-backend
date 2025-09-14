@@ -1,7 +1,7 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { asyncHandle, successHandle, errorHandle } from "../utils/handler.js";
 import { uploadToS3 } from "../utils/s3.service.js";
-import { createUser, getUserById, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents, createPlant } from "../service/user.service.js";
+import { createUser, getUserById, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents, createPlant, createLitter, getLittersBySchoolId, addEcoPoints } from "../service/user.service.js";
 
 export const createUserController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
@@ -56,6 +56,7 @@ export const joinOrgController = asyncHandle(async (request: FastifyRequest, rep
 export const createNGOEventController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
   const userId = request.user.id;
+  console.log("Creating NGO Event with data:", data, "by user:", userId);
   const result = await createNGOEvent(data);
   if (typeof result === "string") {
     return errorHandle(result, reply, 400);
@@ -75,7 +76,7 @@ export const createSchoolEventController = asyncHandle(async (request: FastifyRe
 
 export const applyForNGOEventController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
-  const result = await applyForNGOEvent(data.eventId);
+  const result = await applyForNGOEvent(data);
   if (typeof result === "string") {
     return errorHandle(result, reply, 400);
   }
@@ -107,29 +108,29 @@ export const getSchoolEventsController = asyncHandle(async (request: FastifyRequ
   return successHandle(result, reply, 200);
 });
 
-export const getPlants = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+export const createPlantsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const parts = request.parts();
     let metadata: { [key: string]: any } = {};
     let uploadedFiles: any[] = [];
     // const userId = request.user.id;
-    
+
     for await (const part of parts) {
       if ('filename' in part && part.filename) {
         // This is a file part
         const fileBuffer = await part.toBuffer();
         const fileName = part.filename;
         const contentType = part.mimetype;
-        
+
         // Validate file type (optional - add your own validation logic)
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(contentType)) {
           return errorHandle(`File type ${contentType} is not allowed. Only images are permitted.`, reply, 400);
         }
-        
+
         // Upload to S3
         const uploadResult = await uploadToS3(fileBuffer, fileName, contentType, 'plant-images');
-        
+
         uploadedFiles.push({
           fieldname: part.fieldname,
           originalName: fileName,
@@ -139,13 +140,13 @@ export const getPlants = asyncHandle(async (request: FastifyRequest, reply: Fast
           url: uploadResult.url,
           location: uploadResult.location
         });
-        
+
       } else if ('value' in part) {
         // This is a regular form field
         metadata[part.fieldname] = part.value;
       }
     }
-    
+
     // const plantData = {
     //   plantName: metadata.plantName,
     //   imageUrl: uploadedFiles[0].url,
@@ -166,38 +167,38 @@ export const getPlants = asyncHandle(async (request: FastifyRequest, reply: Fast
     const geminiModel = "gemini-2.0-flash";
 
     console.log("Plant Data:", plantData);
-     const getRarity = async (plantName: string): Promise<string> => {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`
-    const prompt = ` Classify the rarity of the plant named "${plantName}" into one of the following categories: Common, Uncommon, Rare, Very Rare, or Extremely Rare. Provide only the category name as the response.`
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+    const getRarity = async (plantName: string): Promise<string> => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`
+      const prompt = ` Classify the rarity of the plant named "${plantName}" into one of the following categories: Common, Uncommon, Rare, Very Rare, or Extremely Rare. Provide only the category name as the response.`
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
         })
-      })
-      const data = await response.json() as {
-        candidates?: Array<{
-          content?: {
-            parts?: Array<{
-              text?: string
-            }>
-          }
-        }>
-      };
-      return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
-    } catch (err) {
-      return ''
+        const data = await response.json() as {
+          candidates?: Array<{
+            content?: {
+              parts?: Array<{
+                text?: string
+              }>
+            }
+          }>
+        };
+        return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
+      } catch (err) {
+        return ''
+      }
     }
-  }
     const rarity = await getRarity(plantData.plantName);
     console.log("Determined Rarity:", rarity);
 
     // Calculate ecopoints based on rarity
     const calculateEcoPoints = (rarity: string): number => {
       const rarityLower = rarity.toLowerCase().trim();
-      
+
       switch (rarityLower) {
         case 'common':
           return 10;
@@ -235,4 +236,69 @@ export const getPlants = asyncHandle(async (request: FastifyRequest, reply: Fast
     console.error('Error processing plant upload:', error);
     return errorHandle('Failed to process plant upload', reply, 500);
   }
+});
+
+export const createLitterController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const parts = request.parts();
+    let UploadedFiles: any[] = [];
+    const metadata: { [key: string]: any } = {};
+
+    for await (const part of parts) {
+      if ('filename' in part && part.filename) {
+        // This is a file part
+        const fileBuffer = await part.toBuffer();
+        const fileName = part.filename;
+        const contentType = part.mimetype;
+        // Validate file type (optional - add your own validation logic)
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(contentType)) {
+          return errorHandle(`File type ${contentType} is not allowed. Only images are permitted.`, reply, 400);
+        }
+        // Upload to S3
+        const uploadResult = await uploadToS3(fileBuffer, fileName, contentType, 'litter-images');
+        UploadedFiles.push({
+          fieldname: part.fieldname,
+          originalName: fileName,
+          contentType: contentType,
+          size: fileBuffer.length,
+          s3Key: uploadResult.key,
+          url: uploadResult.url,
+          location: uploadResult.location
+        });
+      } else if ('value' in part) {
+        // This is a regular form field
+        metadata[part.fieldname] = part.value;
+      }
+    }
+    const data = {
+      beforeImg: UploadedFiles.find(file => file.fieldname === 'beforeImg')?.url || '',
+      afterImg: UploadedFiles.find(file => file.fieldname === 'afterImg')?.url || '',
+      latitude: parseInt(metadata.latitude),
+      longitude: parseInt(metadata.longitude),
+      createdById: request.user.id,
+    }
+    console.log("Litter Data:", data);
+    const result = await createLitter(data);
+    if (typeof result === "string") {
+      return errorHandle(result, reply, 400);
+    }
+    return successHandle(result, reply, 201);
+  } catch (error) {
+    console.error('Error creating litter:', error);
+    return errorHandle('Failed to create litter', reply, 500);
+  }
+});
+
+export const getLittersBySchoolIdController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const page = parseInt((request.query as any).page as string || "1");
+  const { schoolId } = request.params as { schoolId: string };  
+  const result = await getLittersBySchoolId(schoolId, page);
+  return successHandle(result, reply, 200);
+});
+
+export const addEcoPointsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const data = request.body as any;
+  const result = await addEcoPoints(data.userId, data.points);
+  return successHandle(result, reply, 200);
 });
