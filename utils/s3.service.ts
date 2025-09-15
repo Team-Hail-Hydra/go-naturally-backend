@@ -14,12 +14,6 @@ const requiredEnvVars = {
   S3_BUCKET_REGION: process.env.S3_BUCKET_REGION || "ap-south-1"
 };
 
-console.log("Loading S3 configuration from environment variables...");
-console.log("S3_BUCKET_NAME:", requiredEnvVars.S3_BUCKET_NAME ? "set" : "NOT SET");
-console.log("S3_BUCKET_ACCESS_KEY_ID:", requiredEnvVars.S3_BUCKET_ACCESS_KEY_ID ? "set" : "NOT SET");
-console.log("S3_BUCKET_SECRET_ACCESS_KEY:", requiredEnvVars.S3_BUCKET_SECRET_ACCESS_KEY ? "set" : "NOT SET");
-console.log("S3_BUCKET_REGION:", requiredEnvVars.S3_BUCKET_REGION);
-
 // Check for missing environment variables
 const missingVars = Object.entries(requiredEnvVars)
   .filter(([key, value]) => !value)
@@ -30,13 +24,6 @@ if (missingVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
 }
 
-console.log("S3 Configuration:", {
-  bucket: requiredEnvVars.S3_BUCKET_NAME,
-  region: requiredEnvVars.S3_BUCKET_REGION,
-  hasAccessKey: !!requiredEnvVars.S3_BUCKET_ACCESS_KEY_ID,
-  hasSecretKey: !!requiredEnvVars.S3_BUCKET_SECRET_ACCESS_KEY,
-  endpoint: process.env.STORAGE_URL || "default AWS S3"
-});
 
 // Configure S3 client
 const s3Client = new S3Client({
@@ -106,8 +93,7 @@ export async function uploadToS3(
     // Upload to S3
     const command = new PutObjectCommand(uploadParams);
     const result = await s3Client.send(command);
-    
-    console.log("Upload successful:", result);
+
 
     // Generate the public URL
     const baseUrl = process.env.PUBLIC_STORAGE_URL || `https://${BUCKET_NAME}.s3.${requiredEnvVars.S3_BUCKET_REGION}.amazonaws.com`;

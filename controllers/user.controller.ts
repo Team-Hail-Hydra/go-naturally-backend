@@ -1,7 +1,8 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { asyncHandle, successHandle, errorHandle } from "../utils/handler.js";
 import { uploadToS3 } from "../utils/s3.service.js";
-import { createUser, getUserById, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents, createPlant, createLitter, getLittersBySchoolId, addEcoPoints } from "../service/user.service.js";
+import { createUser, getUserById, createSchool, createNGO, joinNGO, joinSchool, createNGOEvent, createSchoolEvent, applyForNGOEvent, applyForSchoolEvent, getNGOEvents, getSchoolEvents, createPlant, createLitter, getLittersBySchoolId, addEcoPoints, createAnimal, getLeaderBoard, getLittersByStudentId, getPlantsByStudentId, getAnimalsByStudentId, getMarkers, getSchoolEventApplications } from "../service/user.service.js";
+import { GoogleGenAI } from '@google/genai';
 
 export const createUserController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
@@ -93,6 +94,14 @@ export const applyForSchoolEventController = asyncHandle(async (request: Fastify
   return successHandle(result, reply, 200);
 });
 
+export const getSchoolEventApplicationsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const eventId = (request.query as any).eventId as string;
+  const page = parseInt((request.query as any).page as string || "1");
+  const result = await getSchoolEventApplications(page, eventId);
+  return successHandle(result, reply, 200);
+});
+
+
 export const getNGOEventsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const page = parseInt((request.query as any).page as string || "1");
   const NGOId = (request.query as any).ngoId as string;
@@ -158,8 +167,8 @@ export const createPlantsController = asyncHandle(async (request: FastifyRequest
     const plantData = {
       plantName: metadata.plantName,
       imageUrl: uploadedFiles[0]?.url || '',
-      latitude: parseInt(metadata.latitude),
-      longitude: parseInt(metadata.longitude),
+      latitude: parseFloat(metadata.latitude),
+      longitude: parseFloat(metadata.longitude),
       createdById: request.user.id
 
     }
@@ -274,8 +283,8 @@ export const createLitterController = asyncHandle(async (request: FastifyRequest
     const data = {
       beforeImg: UploadedFiles.find(file => file.fieldname === 'beforeImg')?.url || '',
       afterImg: UploadedFiles.find(file => file.fieldname === 'afterImg')?.url || '',
-      latitude: parseInt(metadata.latitude),
-      longitude: parseInt(metadata.longitude),
+      latitude: parseFloat(metadata.latitude),
+      longitude: parseFloat(metadata.longitude),
       createdById: request.user.id,
     }
     console.log("Litter Data:", data);
@@ -292,13 +301,153 @@ export const createLitterController = asyncHandle(async (request: FastifyRequest
 
 export const getLittersBySchoolIdController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const page = parseInt((request.query as any).page as string || "1");
-  const { schoolId } = request.params as { schoolId: string };  
+  const { schoolId } = request.params as { schoolId: string };
   const result = await getLittersBySchoolId(schoolId, page);
   return successHandle(result, reply, 200);
 });
 
 export const addEcoPointsController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
   const data = request.body as any;
-  const result = await addEcoPoints(data.userId, data.points);
+  console.log("Adding Eco Points:", data);
+  const result = await addEcoPoints(data.userId, data.points, data.litterId);
+  return successHandle(result, reply, 200);
+});
+
+export const createAnimalController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const parts = request.parts();
+  let uploadedFiles: any[] = [];
+  let metadata: { [key: string]: any } = {};
+  let animalData;
+
+  for await (const part of parts) {
+    if ('filename' in part && part.filename) {
+      // This is a file part
+      const fileBuffer = await part.toBuffer();
+      const fileName = part.filename;
+      const contentType = part.mimetype;
+
+      // Validate file type (optional - add your own validation logic)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(contentType)) {
+        return errorHandle(`File type ${contentType} is not allowed. Only images are permitted.`, reply, 400);
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const blob = new Blob([fileBuffer], { type: contentType });
+      const myfile = await ai.files.upload({
+        file: blob,
+        config: { mimeType: contentType },
+      });
+      console.log("Uploaded file:", myfile);
+
+      const result = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [{
+          role: "user",
+          parts: [
+            { fileData: { fileUri: myfile.uri, mimeType: myfile.mimeType } },
+            { text: "\n\nYou will receive animal images and you'll have to give data in JSON object format only. The JSON should contain exactly these fields: 'name' (string), 'description' (string), 'average_life_span' (string), and 'rarity' (number from 1 to 5 indicating how rare the animal is). Return only the JSON object, nothing else." }
+          ]
+        }],
+      });
+  
+      
+      // Parse the Gemini AI response as JSON
+      
+      try {
+        const geminiText = result.text;
+        if (!geminiText) {
+          throw new Error("No text response from Gemini AI");
+        }
+        
+        // Extract JSON from the response (in case there's extra text)
+        const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : geminiText;
+        
+        if (!jsonString) {
+          throw new Error("No JSON found in Gemini response");
+        }
+        
+        animalData = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error("Error parsing Gemini response:", parseError);
+        return errorHandle("Failed to parse animal data from AI response", reply, 500);
+      }
+      
+      // Upload to S3
+      const uploadResult = await uploadToS3(fileBuffer, fileName, contentType, 'animal-images');
+
+      uploadedFiles.push({
+        fieldname: part.fieldname,
+        originalName: fileName,
+        contentType: contentType,
+        size: fileBuffer.length,
+        s3Key: uploadResult.key,
+        url: uploadResult.url,
+        location: uploadResult.location,
+      });
+
+    } else if ('value' in part) {
+      // This is a regular form field
+      metadata[part.fieldname] = part.value;
+    }
+  }
+  animalData.imageUrl = uploadedFiles[0].url;
+  animalData.latitude = parseFloat(metadata.latitude);
+  animalData.longitude = parseFloat(metadata.longitude);
+  console.log("Animal Data:", animalData);
+
+  const result = await createAnimal(animalData, request.user.id);
+
+  if (typeof result === "string") {
+    return errorHandle(result, reply, 400);
+  }
+  return successHandle(result, reply, 201);
+
+});
+
+export const getLeaderBoardController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const result = await getLeaderBoard();
+  if (typeof result === "string") {
+    return errorHandle(result, reply, 400);
+  }
+  return successHandle(result, reply, 200);
+});
+
+export const getLitterByStudentId = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+ const studentId = request.user.id;
+  const page = parseInt((request.query as any).page as string || "1");
+  const result = await getLittersByStudentId(studentId, page);
+  if (typeof result === "string") {
+    return errorHandle(result, reply, 400);
+  }
+  return successHandle(result, reply, 200);
+});
+
+export const getPlantsByStudentIdController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const studentId = request.user.id;
+  const page = parseInt((request.query as any).page as string || "1");
+  const result = await getPlantsByStudentId(studentId, page);
+  if (typeof result === "string") {
+    return errorHandle(result, reply, 400);
+  }
+  return successHandle(result , reply, 200);
+});
+
+export const getAnimalsByStudentIdController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const studentId = request.user.id;
+  const page = parseInt((request.query as any).page as string || "1");
+  const result = await getAnimalsByStudentId(studentId, page);
+  if (typeof result === "string") {
+    return errorHandle(result, reply, 400);
+  }
+  return successHandle(result, reply, 200);
+});
+
+export const getMarkersController = asyncHandle(async (request: FastifyRequest, reply: FastifyReply) => {
+  const result = await getMarkers();
+  if (typeof result === "string") {
+    return errorHandle(result, reply, 400);
+  }
   return successHandle(result, reply, 200);
 });

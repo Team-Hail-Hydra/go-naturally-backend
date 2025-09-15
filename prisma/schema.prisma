@@ -33,6 +33,7 @@ model Profile {
   School_Events_Applications School_Events_Applications[]
   Plant                      Plant[]
   Litter                     Litter[]
+  Animals                    Animals[]
 }
 
 enum Role {
@@ -127,4 +128,17 @@ model Litter {
   createdBy   Profile @relation(fields: [createdById], references: [userId])
   createdById String
   isAwarded   Boolean @default(false)
+}
+
+model Animals {
+  id                String  @id @default(uuid())
+  name              String
+  description       String
+  average_life_span String
+  rarity            Int
+  latitude          Float
+  longitude         Float
+  imageUrl          String
+  createdById       String
+  createdBy         Profile @relation(fields: [createdById], references: [userId])
 }

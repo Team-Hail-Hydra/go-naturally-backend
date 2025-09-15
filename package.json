@@ -19,6 +19,7 @@
     "@aws-sdk/s3-request-presigner": "^3.888.0",
     "@fastify/cors": "^11.1.0",
     "@fastify/multipart": "^9.0.3",
+    "@google/genai": "^1.19.0",
     "@prisma/client": "^6.16.1",
     "@supabase/supabase-js": "^2.57.4",
     "@types/uuid": "^10.0.0",

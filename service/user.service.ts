@@ -1,6 +1,7 @@
 import { PrismaClient } from "../generated/prisma/index.js";
 import { User } from "../types/user";
 import { Org } from "../types/org.type.js";
+import { skip } from "../generated/prisma/runtime/library.js";
 
 const prisma = new PrismaClient();
 
@@ -180,7 +181,7 @@ export const applyForSchoolEvent = async (data: any, userId: string) => {
     try {
         const application = await prisma.school_Events_Applications.create({
             data: {
-                profileId: data.userId,
+                profileId:userId,
                 schoolEventId: data.eventId,
             }
         });
@@ -189,6 +190,27 @@ export const applyForSchoolEvent = async (data: any, userId: string) => {
         return "Error applying for school event: " + (error instanceof Error ? error.message : String(error));
     }
 }
+
+export const getSchoolEventApplications = async (page: number, eventId: string) => {
+    try {
+        const applicationCounts = await prisma.school_Events_Applications.count({ where: { schoolEventId: eventId } });
+        const applications = await prisma.school_Events_Applications.findMany({
+            skip: (page - 1) * 10,
+            take: 10,
+            where: { schoolEventId: eventId },
+            include: {
+                profile: true,
+            }
+        });
+        return {
+            applications,
+            totalPages: Math.ceil(applicationCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        return "Error fetching school event applications: " + (error instanceof Error ? error.message : String(error));
+    }
+} 
 
 export const getNGOEvents = async (page: number, NGOId: string) => {
     try {
@@ -199,6 +221,9 @@ export const getNGOEvents = async (page: number, NGOId: string) => {
             events = await prisma.nGO_Events.findMany({
                 skip: (page - 1) * 10,
                 take: 10,
+                include: {
+                    ngo: true,
+                }
             });
         } else {
             eventCounts = await prisma.nGO_Events.count({ where: { ngoId: NGOId } });
@@ -206,6 +231,9 @@ export const getNGOEvents = async (page: number, NGOId: string) => {
                 skip: (page - 1) * 10,
                 take: 10,
                 where: { ngoId: NGOId },
+                include: {
+                    ngo: true,
+                }
             });
         }
         return {
@@ -331,11 +359,15 @@ export const getLitterById = async (litterId: string) => {
     }
 }
 
-export const addEcoPoints = async (userId: string, points: number) => {
+export const addEcoPoints = async (userId: string, points: number, litterId: string) => {
     try {
         const user = await prisma.profile.update({
             where: { userId: userId },
             data: { ecoPoints: { increment: points } }
+        });
+        await prisma.litter.update({
+            where: { id: litterId },
+            data: { isAwarded: true }
         });
         return user;
     } catch (error: unknown) {
@@ -347,6 +379,9 @@ export const getLeaderBoard = async () => {
     try {
         const users = await prisma.profile.findMany({
             orderBy: { ecoPoints: 'desc' },
+            where:{
+                role: { equals: "STUDENT"}
+            },
             include: {
                 school: true,
             },
@@ -371,5 +406,138 @@ export const getLeaderBoardBySchoolId = async (schoolId: string) => {
         return users;
     } catch (error: unknown) {
         return "Error fetching leaderboard by school ID: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const createAnimal = async (data: any, userId: string) => {
+    console.log("Creating animal with data:", data, "for userId:", userId);
+    try {
+        const animal = await prisma.animals.create({
+            data: {
+                name: data.name || data.animal, // Handle both 'name' and 'animal' fields from Gemini response
+                description: data.description,
+                imageUrl: data.imageUrl,
+                average_life_span: data.average_life_span,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                rarity: data.rarity,
+                createdById: userId,
+            }
+        });
+        return animal;
+    } catch (error: unknown) {
+        return "Error creating animal: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getLittersByStudentId = async (studentId: string, page: number) => {
+    try {
+        const litterCounts = await prisma.litter.count({
+            where: {
+                createdById: studentId
+            }
+        });
+        const litters = await prisma.litter.findMany({
+            where: {
+                createdById: studentId
+            },
+            skip: (page - 1) * 10,
+            take: 10,
+        });
+        return {
+            litters,
+            totalPages: Math.ceil(litterCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        return "Error fetching litters: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getPlantsByStudentId = async (studentId: string, page: number) => {
+    try {
+        const plantCounts = await prisma.plant.count({
+            where: {
+                createdById: studentId
+            }
+        });
+        const plants = await prisma.plant.findMany({
+            where: {
+                createdById: studentId
+            },
+            skip: (page - 1) * 10,
+            take: 10,
+        });
+        return {
+            plants,
+            totalPages: Math.ceil(plantCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        return "Error fetching plants: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getAnimalsByStudentId = async (studentId: string, page: number) => {
+    try {
+        const animalCounts = await prisma.animals.count({
+            where: {
+                createdById: studentId
+            }
+        });
+        const animals = await prisma.animals.findMany({
+            where: {
+                createdById: studentId
+            },
+            skip: (page - 1) * 10,
+            take: 10,
+        });
+        return {
+            animals,
+            totalPages: Math.ceil(animalCounts / 10),
+            currentPage: page,
+        };
+    } catch (error: unknown) {
+        return "Error fetching animals: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getMarkers = async () => {
+    try {
+        const plants = await prisma.plant.findMany({
+            select: {
+                id: true,
+                latitude: true,
+                longitude: true,
+                imageUrl: true,
+                plantName: true,
+            }
+        });
+        const litters = await prisma.litter.findMany({
+            select: {
+                id: true,
+                latitude: true,
+                longitude: true,
+                beforeImg: true,
+                afterImg: true,
+            }
+        });
+        const animals = await prisma.animals.findMany({
+            select: {
+                id: true,
+                latitude: true,
+                longitude: true,
+                imageUrl: true,
+                name: true,
+            }
+        });
+
+        return {
+            plants,
+            litters,
+            animals,
+        };
+    } catch (error: unknown) {
+        return "Error fetching markers: " + (error instanceof Error ? error.message : String(error));
     }
 }
