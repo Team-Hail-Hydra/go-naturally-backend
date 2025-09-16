@@ -433,14 +433,46 @@ export const createAnimalController = asyncHandle(async (request: FastifyRequest
   animalData.imageUrl = uploadedFiles[0].url;
   animalData.latitude = parseFloat(metadata.latitude);
   animalData.longitude = parseFloat(metadata.longitude);
+  
+  // Ensure rarity is an integer
+  animalData.rarity = parseInt(animalData.rarity) || 1;
+  
   console.log("Animal Data:", animalData);
 
-  const result = await createAnimal(animalData, request.user.id);
+  // Calculate ecopoints based on animal rarity (1-5 scale)
+  const calculateEcoPoints = (rarity: number): number => {
+    switch (rarity) {
+      case 1: // Very Common
+        return 15;
+      case 2: // Common
+        return 30;
+      case 3: // Uncommon
+        return 60;
+      case 4: // Rare
+        return 120;
+      case 5: // Very Rare/Endangered
+        return 250;
+      default:
+        console.warn(`Invalid rarity: ${rarity}, defaulting to 1`);
+        return 15;
+    }
+  };
+
+  const ecoPoints = calculateEcoPoints(animalData.rarity);
+  console.log(`Animal: ${animalData.name}`);
+  console.log(`Rarity: ${animalData.rarity}`);
+  console.log(`Calculated Ecopoints: ${ecoPoints}`);
+
+  const result = await createAnimal(animalData, request.user.id, ecoPoints);
 
   if (typeof result === "string") {
     return errorHandle(result, reply, 400);
   }
-  return successHandle(result, reply, 201);
+  return successHandle({
+    animal: result,
+    rarity: animalData.rarity,
+    ecoPointsAwarded: ecoPoints
+  }, reply, 201);
 
 });
 
