@@ -45,7 +45,7 @@ fastify.register(routes, { prefix: '/api/v1' });
 const start = async (): Promise<void> => {
   try {
     const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-    const host = process.env.HOST || 'localhost';
+    const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
     
     await fastify.listen({ port, host });
     console.log(`Server is running on http://${host}:${port}`);
