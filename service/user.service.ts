@@ -1,13 +1,25 @@
 import { PrismaClient } from "../generated/prisma/index.js";
 import { User } from "../types/user";
 import { Org } from "../types/org.type.js";
-import { skip } from "../generated/prisma/runtime/library.js";
 
 const prisma = new PrismaClient();
 
 
 export const createUser = async (data: User) => {
     try {
+        const check = await getUserByUserId(data.userId);
+        if (typeof check !== "string" && check !== null) {
+            const user = await prisma.profile.update({
+                where: { userId: data.userId },
+                data: {
+                    fullName: data.fullName,
+                    email: data.email,
+                    role: data.role,
+                    profilePic: data.profilePic,
+                }
+            });
+            return user;
+        }
         const user = await prisma.profile.create({
             data: {
                 userId: data.userId,
@@ -20,6 +32,17 @@ export const createUser = async (data: User) => {
         return user;
     } catch (error: unknown) {
         return "Error creating user: " + (error instanceof Error ? error.message : String(error));
+    }
+}
+
+export const getUserByUserId = async (userId: string) => {
+    try {
+        const user = await prisma.profile.findUnique({
+            where: { userId: userId },
+        });
+        return user;
+    } catch (error: unknown) {
+        return "Error getting user by userId: " + (error instanceof Error ? error.message : String(error));
     }
 }
 
