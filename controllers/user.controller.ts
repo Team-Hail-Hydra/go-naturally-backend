@@ -176,9 +176,16 @@ export const createPlantsController = asyncHandle(async (request: FastifyRequest
     const geminiModel = "gemini-2.0-flash";
 
     console.log("Plant Data:", plantData);
-    const getRarity = async (plantName: string): Promise<string> => {
+    
+    // Get plant information from Gemini AI
+    const getPlantInfo = async (plantName: string): Promise<{ rarity: number; description: string }> => {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`
-      const prompt = ` Classify the rarity of the plant named "${plantName}" into one of the following categories: Common, Uncommon, Rare, Very Rare, or Extremely Rare. Provide only the category name as the response.`
+      const prompt = `Analyze the plant named "${plantName}" and provide information in JSON format only. The JSON should contain exactly these fields:
+      - "rarity": integer from 1 to 5 (1=Very Common, 2=Common, 3=Uncommon, 4=Rare, 5=Very Rare)
+      - "description": string with detailed description of the plant including its characteristics, habitat, and uses
+      
+      Return only the JSON object, nothing else.`
+      
       try {
         const response = await fetch(url, {
           method: 'POST',
@@ -196,50 +203,81 @@ export const createPlantsController = asyncHandle(async (request: FastifyRequest
             }
           }>
         };
-        return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
+        
+        const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (!geminiText) {
+          throw new Error("No response from Gemini AI");
+        }
+        
+        // Extract JSON from the response
+        const jsonMatch = geminiText.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : geminiText;
+        
+        const plantInfo = JSON.parse(jsonString);
+        
+        // Validate and ensure proper data types
+        return {
+          rarity: parseInt(plantInfo.rarity) || 1,
+          description: plantInfo.description || 'No description available'
+        };
+        
       } catch (err) {
-        return ''
+        console.error("Error getting plant info from Gemini:", err);
+        // Return default values if Gemini fails
+        return {
+          rarity: 1,
+          description: `Information about ${plantName} plant.`
+        };
       }
     }
-    const rarity = await getRarity(plantData.plantName);
-    console.log("Determined Rarity:", rarity);
+    
+    const plantInfo = await getPlantInfo(plantData.plantName);
+    console.log("Plant Info from Gemini:", plantInfo);
 
-    // Calculate ecopoints based on rarity
-    const calculateEcoPoints = (rarity: string): number => {
-      const rarityLower = rarity.toLowerCase().trim();
-
-      switch (rarityLower) {
-        case 'common':
+    // Calculate ecopoints based on rarity (1-5 scale)
+    const calculateEcoPoints = (rarity: number): number => {
+      switch (rarity) {
+        case 1: // Very Common
           return 10;
-        case 'uncommon':
+        case 2: // Common
           return 25;
-        case 'rare':
+        case 3: // Uncommon
           return 50;
-        case 'very rare':
+        case 4: // Rare
           return 100;
-        case 'extremely rare':
+        case 5: // Very Rare
           return 200;
         default:
-          // Default to common if rarity is not recognized
-          console.warn(`Unknown rarity: ${rarity}, defaulting to Common`);
+          console.warn(`Invalid rarity: ${rarity}, defaulting to 1`);
           return 10;
       }
     };
 
-    const ecoPoints = calculateEcoPoints(rarity);
+    const ecoPoints = calculateEcoPoints(plantInfo.rarity);
     console.log(`Plant: ${plantData.plantName}`);
-    console.log(`Rarity: ${rarity}`);
+    console.log(`Rarity: ${plantInfo.rarity}`);
+    console.log(`Description: ${plantInfo.description}`);
     console.log(`Calculated Ecopoints: ${ecoPoints}`);
 
+    // Structure the complete plant data object
+    const completeePlantData = {
+      plantName: plantData.plantName,
+      imageUrl: plantData.imageUrl,
+      latitude: plantData.latitude,
+      longitude: plantData.longitude,
+      createdById: plantData.createdById,
+      rarity: plantInfo.rarity,
+      description: plantInfo.description
+    };
+
     // Save plant record to database
-    const result = await createPlant(plantData, ecoPoints);
+    const result = await createPlant(completeePlantData, ecoPoints);
 
     if (typeof result === "string") {
       return errorHandle(result, reply, 400);
     }
     return successHandle({
       plant: result,
-      rarity,
     }, reply, 200);
   } catch (error) {
     console.error('Error processing plant upload:', error);
@@ -346,7 +384,7 @@ export const createAnimalController = asyncHandle(async (request: FastifyRequest
           role: "user",
           parts: [
             { fileData: { fileUri: myfile.uri, mimeType: myfile.mimeType } },
-            { text: "\n\nYou will receive animal images and you'll have to give data in JSON object format only. The JSON should contain exactly these fields: 'name' (string), 'description' (string), 'average_life_span' (string), and 'rarity' (number from 1 to 5 indicating how rare the animal is). Return only the JSON object, nothing else." }
+            { text: "Analyze this animal image and provide information in JSON format with exactly these fields:\n1. 'name': The common name of the animal (string)\n2. 'description': A detailed description including habitat, behavior, and characteristics (string, minimum 50 words)\n3. 'average_life_span': The typical lifespan in the wild or captivity (string)\n4. 'rarity': How rare this animal is on a scale of 1-5 where 1=very common, 2=common, 3=uncommon, 4=rare, 5=very rare/endangered (integer)\n\nReturn ONLY the JSON object with these exact field names, no additional text." }
           ]
         }],
       });

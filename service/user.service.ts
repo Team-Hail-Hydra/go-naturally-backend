@@ -36,6 +36,7 @@ export const getUserById = async (userId: string) => {
         });
         return user;
     } catch (error: unknown) {
+        console.log(error);
         return "Error getting user: " + (error instanceof Error ? error.message : String(error));
     }
 }
@@ -270,6 +271,8 @@ export const createPlant = async (data: any, ecopoints: number) => {
             data: {
                 plantName: data.plantName,
                 imageUrl: data.imageUrl,
+                rarity: data.rarity,
+                description: data.description,
                 latitude: data.latitude,
                 longitude: data.longitude,
                 createdById: data.createdById,

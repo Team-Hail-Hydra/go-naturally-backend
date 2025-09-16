@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -16,30 +10,22 @@ datasource db {
 }
 
 model Profile {
-  id         String  @id @default(uuid())
-  userId     String  @unique // Supabase auth.users.id
-  fullName   String
-  email      String  @unique
-  role       Role
-  profilePic String?
-  ecoPoints  Int     @default(0)
-
-  school   School? @relation(fields: [schoolId], references: [id])
-  schoolId String?
-
-  ngo                        NGO?                         @relation(fields: [ngoId], references: [id])
+  id                         String                       @id @default(uuid())
+  userId                     String                       @unique
+  fullName                   String
+  role                       Role
+  schoolId                   String?
   ngoId                      String?
-  NGO_Events_Applications    NGO_Events_Applications[]
-  School_Events_Applications School_Events_Applications[]
-  Plant                      Plant[]
-  Litter                     Litter[]
+  profilePic                 String?
+  email                      String                       @unique
+  ecoPoints                  Int                          @default(0)
   Animals                    Animals[]
-}
-
-enum Role {
-  STUDENT
-  TEACHER
-  NGO
+  Litter                     Litter[]
+  NGO_Events_Applications    NGO_Events_Applications[]
+  Plant                      Plant[]
+  ngo                        NGO?                         @relation(fields: [ngoId], references: [id])
+  school                     School?                      @relation(fields: [schoolId], references: [id])
+  School_Events_Applications School_Events_Applications[]
 }
 
 model School {
@@ -56,8 +42,8 @@ model NGO {
   name       String
   email      String       @unique
   phoneNo    String       @unique
-  members    Profile[]
   NGO_Events NGO_Events[]
+  members    Profile[]
 }
 
 model NGO_Events {
@@ -67,8 +53,8 @@ model NGO_Events {
   latitude                Float
   longitude               Float
   date                    String
-  ngo                     NGO                       @relation(fields: [ngoId], references: [id])
   ngoId                   String
+  ngo                     NGO                       @relation(fields: [ngoId], references: [id])
   NGO_Events_Applications NGO_Events_Applications[]
 }
 
@@ -79,44 +65,40 @@ model School_Events {
   latitude                   Float
   longitude                  Float
   date                       String
-  school                     School                       @relation(fields: [schoolId], references: [id])
   schoolId                   String
+  school                     School                       @relation(fields: [schoolId], references: [id])
   School_Events_Applications School_Events_Applications[]
 }
 
 model NGO_Events_Applications {
   id         String            @id @default(uuid())
-  ngoEvent   NGO_Events        @relation(fields: [ngoEventId], references: [id])
   ngoEventId String
-  profile    Profile           @relation(fields: [profileId], references: [id])
   profileId  String
   status     ApplicationStatus @default(PENDING)
   appliedAt  DateTime          @default(now())
+  ngoEvent   NGO_Events        @relation(fields: [ngoEventId], references: [id])
+  profile    Profile           @relation(fields: [profileId], references: [id])
 }
 
 model School_Events_Applications {
   id            String        @id @default(uuid())
-  schoolEvent   School_Events @relation(fields: [schoolEventId], references: [id])
   schoolEventId String
-  profile       Profile       @relation(fields: [profileId], references: [id])
   profileId     String
   appliedAt     DateTime      @default(now())
-}
-
-enum ApplicationStatus {
-  PENDING
-  APPROVED
-  REJECTED
+  profile       Profile       @relation(fields: [profileId], references: [id])
+  schoolEvent   School_Events @relation(fields: [schoolEventId], references: [id])
 }
 
 model Plant {
   id          String  @id @default(uuid())
   plantName   String
   imageUrl    String
+  rarity      Int
+  description String
   latitude    Float
   longitude   Float
-  createdBy   Profile @relation(fields: [createdById], references: [userId])
   createdById String
+  createdBy   Profile @relation(fields: [createdById], references: [userId])
 }
 
 model Litter {
@@ -125,9 +107,9 @@ model Litter {
   afterImg    String
   latitude    Float
   longitude   Float
-  createdBy   Profile @relation(fields: [createdById], references: [userId])
   createdById String
   isAwarded   Boolean @default(false)
+  createdBy   Profile @relation(fields: [createdById], references: [userId])
 }
 
 model Animals {
@@ -135,10 +117,22 @@ model Animals {
   name              String
   description       String
   average_life_span String
-  rarity            Int
-  latitude          Float
-  longitude         Float
   imageUrl          String
   createdById       String
+  latitude          Float
+  longitude         Float
+  rarity            Int
   createdBy         Profile @relation(fields: [createdById], references: [userId])
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  NGO
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
