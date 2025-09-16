@@ -412,8 +412,8 @@ export const getLeaderBoardBySchoolId = async (schoolId: string) => {
     }
 }
 
-export const createAnimal = async (data: any, userId: string) => {
-    console.log("Creating animal with data:", data, "for userId:", userId);
+export const createAnimal = async (data: any, userId: string, ecopoints: number) => {
+    console.log("Creating animal with data:", data, "for userId:", userId, "ecopoints:", ecopoints);
     try {
         const animal = await prisma.animals.create({
             data: {
@@ -427,7 +427,17 @@ export const createAnimal = async (data: any, userId: string) => {
                 createdById: userId,
             }
         });
-        return animal;
+        
+        // Award ecopoints to the user
+        await prisma.profile.update({
+            where: { userId: userId },
+            data: { ecoPoints: { increment: ecopoints } }
+        });
+        
+        return {
+            animal,
+            ecopoints
+        };
     } catch (error: unknown) {
         return "Error creating animal: " + (error instanceof Error ? error.message : String(error));
     }
