@@ -33,6 +33,7 @@ model School {
   name          String
   email         String          @unique
   phoneNo       String          @unique
+  joinCode     String          @unique
   members       Profile[]
   School_Events School_Events[]
 }
@@ -42,6 +43,7 @@ model NGO {
   name       String
   email      String       @unique
   phoneNo    String       @unique
+  joinCode   String       @unique
   NGO_Events NGO_Events[]
   members    Profile[]
 }

@@ -4,6 +4,15 @@ import { Org } from "../types/org.type.js";
 
 const prisma = new PrismaClient();
 
+const join = async () => {
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
 
 export const createUser = async (data: User) => {
     try {
@@ -65,6 +74,8 @@ export const getUserById = async (userId: string) => {
 }
 
 export const createSchool = async (data: Org, userId: string) => {
+    const code = await join();
+    console.log("Generated join code for school:", code);
     try {
         const result = await prisma.$transaction(async (tx: any) => {
             const org = await tx.school.create({
@@ -72,6 +83,7 @@ export const createSchool = async (data: Org, userId: string) => {
                     name: data.name,
                     phoneNo: data.phoneNo,
                     email: data.email,
+                    joinCode: code, // Changed from joinNGO to joinCode
                 },
             });
             const profile = await tx.profile.update({
@@ -88,13 +100,16 @@ export const createSchool = async (data: Org, userId: string) => {
 }
 
 export const createNGO = async (data: Org, userId: string) => {
+    const code = await join();
     try {
         const result = await prisma.$transaction(async (tx: any) => {
+            
             const org = await tx.NGO.create({
                 data: {
                     name: data.name,
                     phoneNo: data.phoneNo,
                     email: data.email,
+                    joinNGO : code,
                 },
             });
             const profile = await tx.profile.update({
@@ -112,15 +127,21 @@ export const createNGO = async (data: Org, userId: string) => {
 
 export const joinSchool = async (orgId: string, userId: string) => {
     try {
+        console.log("Joining school with join code:", orgId);
         const org = await prisma.school.findUnique({
-            where: { id: orgId },
+            where: { joinCode: orgId },
         });
         if (!org) {
+            console.log("School not found");
             return "School not found";
         }
+        const organization_id = await prisma.school.findUnique({
+            where: { joinCode: orgId },
+        })
+        console.log(organization_id)
         const profile = await prisma.profile.update({
             where: { userId: userId },
-            data: { schoolId: orgId },
+            data: { schoolId: organization_id?.id },
         });
         return profile;
 
@@ -132,14 +153,18 @@ export const joinSchool = async (orgId: string, userId: string) => {
 export const joinNGO = async (orgId: string, userId: string) => {
     try {
         const org = await prisma.nGO.findUnique({
-            where: { id: orgId },
+            where: { joinCode: orgId },
         });
         if (!org) {
             return "NGO not found";
         }
+        const organization_id = await prisma.nGO.findUnique({
+            where: { joinCode: orgId },
+            select: { id: true }
+        })
         const profile = await prisma.profile.update({
             where: { userId: userId },
-            data: { ngoId: orgId },
+            data: { ngoId: organization_id?.id },
         });
         return profile;
 
@@ -406,7 +431,8 @@ export const getLeaderBoard = async () => {
         const users = await prisma.profile.findMany({
             orderBy: { ecoPoints: 'desc' },
             where:{
-                role: { equals: "STUDENT"}
+                role: { equals: "STUDENT"},
+                ecoPoints: { gt: 0 }
             },
             include: {
                 school: true,
