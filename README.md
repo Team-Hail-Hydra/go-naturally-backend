@@ -284,6 +284,9 @@ GET /markers
 - 🤖 **AI Integration**: Powered by Google Gemini AI for smart environmental insights
 
 ---
+## Demo Video
+[![Youtube Video](https://github.com/user-attachments/assets/83a5c5d2-5a9d-47db-baae-af84da3f0608)](https://www.youtube.com/watch?v=Ibk7X8G6O_I)
+---
 
 ## 🆘 Support & Contact
 
